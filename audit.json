@@ -1,0 +1,581 @@
+{
+  "ok": true,
+  "command": "doctor",
+  "source": "arsenal",
+  "fetched_at": "2026-08-21T15:21:52Z",
+  "cached": false,
+  "count": 7,
+  "meta": {
+    "live": true,
+    "prefer": "source",
+    "audited": 7
+  },
+  "data": {
+    "reports": [
+      {
+        "tool": "openalex",
+        "compliant": true,
+        "passed": 11,
+        "graded": 11,
+        "findings": [
+          {
+            "check": "available",
+            "status": "pass",
+            "detail": "uv run --directory C:\\Users\\USER\\source\\MCPs\\openalex-mcp openalex",
+            "hint": ""
+          },
+          {
+            "check": "help",
+            "status": "pass",
+            "detail": "`--help` exits 0",
+            "hint": ""
+          },
+          {
+            "check": "describe",
+            "status": "pass",
+            "detail": "`describe --json` returns a JSON object",
+            "hint": ""
+          },
+          {
+            "check": "manifest.keys",
+            "status": "pass",
+            "detail": "all required manifest keys present",
+            "hint": ""
+          },
+          {
+            "check": "formats",
+            "status": "pass",
+            "detail": "declares all five required formats",
+            "hint": ""
+          },
+          {
+            "check": "exit_codes",
+            "status": "pass",
+            "detail": "all seven exit codes documented",
+            "hint": ""
+          },
+          {
+            "check": "commands",
+            "status": "pass",
+            "detail": "14 commands, all well-formed",
+            "hint": ""
+          },
+          {
+            "check": "examples",
+            "status": "pass",
+            "detail": "14/14 commands carry examples",
+            "hint": ""
+          },
+          {
+            "check": "live.envelope",
+            "status": "pass",
+            "detail": "envelope complete (ok=True)",
+            "hint": ""
+          },
+          {
+            "check": "live.count",
+            "status": "pass",
+            "detail": "count matches rows (500)",
+            "hint": ""
+          },
+          {
+            "check": "live.cache",
+            "status": "pass",
+            "detail": "second identical call reports cached=true",
+            "hint": ""
+          }
+        ]
+      },
+      {
+        "tool": "scopus",
+        "compliant": true,
+        "passed": 11,
+        "graded": 11,
+        "findings": [
+          {
+            "check": "available",
+            "status": "pass",
+            "detail": "uv run --directory C:\\Users\\USER\\source\\MCPs\\scopus-mcp --no-sync scopus",
+            "hint": ""
+          },
+          {
+            "check": "help",
+            "status": "pass",
+            "detail": "`--help` exits 0",
+            "hint": ""
+          },
+          {
+            "check": "describe",
+            "status": "pass",
+            "detail": "`describe --json` returns a JSON object",
+            "hint": ""
+          },
+          {
+            "check": "manifest.keys",
+            "status": "pass",
+            "detail": "all required manifest keys present",
+            "hint": ""
+          },
+          {
+            "check": "formats",
+            "status": "pass",
+            "detail": "declares all five required formats",
+            "hint": ""
+          },
+          {
+            "check": "exit_codes",
+            "status": "pass",
+            "detail": "all seven exit codes documented",
+            "hint": ""
+          },
+          {
+            "check": "commands",
+            "status": "pass",
+            "detail": "10 commands, all well-formed",
+            "hint": ""
+          },
+          {
+            "check": "examples",
+            "status": "pass",
+            "detail": "10/10 commands carry examples",
+            "hint": ""
+          },
+          {
+            "check": "live.envelope",
+            "status": "pass",
+            "detail": "envelope complete (ok=True)",
+            "hint": ""
+          },
+          {
+            "check": "live.count",
+            "status": "pass",
+            "detail": "count matches rows (5)",
+            "hint": ""
+          },
+          {
+            "check": "live.cache",
+            "status": "pass",
+            "detail": "second identical call reports cached=true",
+            "hint": ""
+          }
+        ]
+      },
+      {
+        "tool": "bcrp",
+        "compliant": true,
+        "passed": 11,
+        "graded": 11,
+        "findings": [
+          {
+            "check": "available",
+            "status": "pass",
+            "detail": "uv run --directory C:\\Users\\USER\\source\\MCPs\\BCRP-mcp bcrp",
+            "hint": ""
+          },
+          {
+            "check": "help",
+            "status": "pass",
+            "detail": "`--help` exits 0",
+            "hint": ""
+          },
+          {
+            "check": "describe",
+            "status": "pass",
+            "detail": "`describe --json` returns a JSON object",
+            "hint": ""
+          },
+          {
+            "check": "manifest.keys",
+            "status": "pass",
+            "detail": "all required manifest keys present",
+            "hint": ""
+          },
+          {
+            "check": "formats",
+            "status": "pass",
+            "detail": "declares all five required formats",
+            "hint": ""
+          },
+          {
+            "check": "exit_codes",
+            "status": "pass",
+            "detail": "all seven exit codes documented",
+            "hint": ""
+          },
+          {
+            "check": "commands",
+            "status": "pass",
+            "detail": "11 commands, all well-formed",
+            "hint": ""
+          },
+          {
+            "check": "examples",
+            "status": "pass",
+            "detail": "10/11 commands carry examples",
+            "hint": ""
+          },
+          {
+            "check": "live.envelope",
+            "status": "pass",
+            "detail": "envelope complete (ok=True)",
+            "hint": ""
+          },
+          {
+            "check": "live.count",
+            "status": "pass",
+            "detail": "count matches rows (84)",
+            "hint": ""
+          },
+          {
+            "check": "live.cache",
+            "status": "pass",
+            "detail": "second identical call reports cached=true",
+            "hint": ""
+          }
+        ]
+      },
+      {
+        "tool": "inei",
+        "compliant": true,
+        "passed": 9,
+        "graded": 10,
+        "findings": [
+          {
+            "check": "available",
+            "status": "pass",
+            "detail": "uv run --directory C:\\Users\\USER\\source\\MCPs\\INEI-mcp inei",
+            "hint": ""
+          },
+          {
+            "check": "help",
+            "status": "pass",
+            "detail": "`--help` exits 0",
+            "hint": ""
+          },
+          {
+            "check": "describe",
+            "status": "pass",
+            "detail": "`describe --json` returns a JSON object",
+            "hint": ""
+          },
+          {
+            "check": "manifest.keys",
+            "status": "pass",
+            "detail": "all required manifest keys present",
+            "hint": ""
+          },
+          {
+            "check": "formats",
+            "status": "pass",
+            "detail": "declares all five required formats",
+            "hint": ""
+          },
+          {
+            "check": "exit_codes",
+            "status": "pass",
+            "detail": "all seven exit codes documented",
+            "hint": ""
+          },
+          {
+            "check": "commands",
+            "status": "pass",
+            "detail": "14 commands, all well-formed",
+            "hint": ""
+          },
+          {
+            "check": "examples",
+            "status": "pass",
+            "detail": "14/14 commands carry examples",
+            "hint": ""
+          },
+          {
+            "check": "live.envelope",
+            "status": "pass",
+            "detail": "upstream returned not_found; error envelope is well-formed (exit 3)",
+            "hint": ""
+          },
+          {
+            "check": "live.upstream",
+            "status": "warn",
+            "detail": "the source did not serve data: Resource not found: /cpv/dashboard/social/",
+            "hint": "A tool problem this is not - but the live cache check cannot run."
+          }
+        ]
+      },
+      {
+        "tool": "undata",
+        "compliant": true,
+        "passed": 10,
+        "graded": 10,
+        "findings": [
+          {
+            "check": "available",
+            "status": "pass",
+            "detail": "uv run --directory C:\\Users\\USER\\source\\MCPs\\UNdata-mcp undata",
+            "hint": ""
+          },
+          {
+            "check": "help",
+            "status": "pass",
+            "detail": "`--help` exits 0",
+            "hint": ""
+          },
+          {
+            "check": "describe",
+            "status": "pass",
+            "detail": "`describe --json` returns a JSON object",
+            "hint": ""
+          },
+          {
+            "check": "manifest.keys",
+            "status": "pass",
+            "detail": "all required manifest keys present",
+            "hint": ""
+          },
+          {
+            "check": "formats",
+            "status": "pass",
+            "detail": "declares all five required formats (plus parquet)",
+            "hint": ""
+          },
+          {
+            "check": "exit_codes",
+            "status": "pass",
+            "detail": "all seven exit codes documented",
+            "hint": ""
+          },
+          {
+            "check": "commands",
+            "status": "pass",
+            "detail": "16 commands, all well-formed",
+            "hint": ""
+          },
+          {
+            "check": "examples",
+            "status": "pass",
+            "detail": "9/16 commands carry examples",
+            "hint": ""
+          },
+          {
+            "check": "live.envelope",
+            "status": "pass",
+            "detail": "envelope complete (ok=True)",
+            "hint": ""
+          },
+          {
+            "check": "live.count",
+            "status": "pass",
+            "detail": "count matches rows (0)",
+            "hint": ""
+          },
+          {
+            "check": "live.cache",
+            "status": "skip",
+            "detail": "first call returned no rows, so a cache hit cannot be demonstrated",
+            "hint": "Pick an example that returns data to exercise the cache."
+          }
+        ]
+      },
+      {
+        "tool": "consultdn",
+        "compliant": true,
+        "passed": 9,
+        "graded": 10,
+        "findings": [
+          {
+            "check": "available",
+            "status": "pass",
+            "detail": "node C:\\Users\\USER\\source\\MCPs\\consultdn-mcp\\dist\\cli.js",
+            "hint": ""
+          },
+          {
+            "check": "help",
+            "status": "pass",
+            "detail": "`--help` exits 0",
+            "hint": ""
+          },
+          {
+            "check": "describe",
+            "status": "pass",
+            "detail": "`describe --json` returns a JSON object",
+            "hint": ""
+          },
+          {
+            "check": "manifest.keys",
+            "status": "pass",
+            "detail": "all required manifest keys present",
+            "hint": ""
+          },
+          {
+            "check": "formats",
+            "status": "pass",
+            "detail": "declares all five required formats",
+            "hint": ""
+          },
+          {
+            "check": "exit_codes",
+            "status": "pass",
+            "detail": "all seven exit codes documented",
+            "hint": ""
+          },
+          {
+            "check": "commands",
+            "status": "pass",
+            "detail": "6 commands, all well-formed",
+            "hint": ""
+          },
+          {
+            "check": "examples",
+            "status": "pass",
+            "detail": "6/6 commands carry examples",
+            "hint": ""
+          },
+          {
+            "check": "live.envelope",
+            "status": "pass",
+            "detail": "upstream returned not_found; error envelope is well-formed (exit 3)",
+            "hint": ""
+          },
+          {
+            "check": "live.upstream",
+            "status": "warn",
+            "detail": "the source did not serve data: No se encontraron resultados para el DNI 12345678.",
+            "hint": "A tool problem this is not - but the live cache check cannot run."
+          }
+        ]
+      },
+      {
+        "tool": "iadetector",
+        "compliant": true,
+        "passed": 11,
+        "graded": 11,
+        "findings": [
+          {
+            "check": "available",
+            "status": "pass",
+            "detail": "dotnet run --project C:\\Users\\USER\\source\\MCPs\\IAdetector-mcp\\src\\IAdetector.Cli --",
+            "hint": ""
+          },
+          {
+            "check": "help",
+            "status": "pass",
+            "detail": "`--help` exits 0",
+            "hint": ""
+          },
+          {
+            "check": "describe",
+            "status": "pass",
+            "detail": "`describe --json` returns a JSON object",
+            "hint": ""
+          },
+          {
+            "check": "manifest.keys",
+            "status": "pass",
+            "detail": "all required manifest keys present",
+            "hint": ""
+          },
+          {
+            "check": "formats",
+            "status": "pass",
+            "detail": "declares all five required formats",
+            "hint": ""
+          },
+          {
+            "check": "exit_codes",
+            "status": "pass",
+            "detail": "all seven exit codes documented",
+            "hint": ""
+          },
+          {
+            "check": "commands",
+            "status": "pass",
+            "detail": "8 commands, all well-formed",
+            "hint": ""
+          },
+          {
+            "check": "examples",
+            "status": "pass",
+            "detail": "8/8 commands carry examples",
+            "hint": ""
+          },
+          {
+            "check": "live.envelope",
+            "status": "pass",
+            "detail": "envelope complete (ok=True)",
+            "hint": ""
+          },
+          {
+            "check": "live.count",
+            "status": "pass",
+            "detail": "count matches rows (1)",
+            "hint": ""
+          },
+          {
+            "check": "live.cache",
+            "status": "pass",
+            "detail": "second identical call reports cached=true",
+            "hint": ""
+          }
+        ]
+      }
+    ]
+  },
+  "rows": [
+    {
+      "tool": "openalex",
+      "compliant": true,
+      "score": "11/11",
+      "failed": 0,
+      "warned": 0,
+      "issues": ""
+    },
+    {
+      "tool": "scopus",
+      "compliant": true,
+      "score": "11/11",
+      "failed": 0,
+      "warned": 0,
+      "issues": ""
+    },
+    {
+      "tool": "bcrp",
+      "compliant": true,
+      "score": "11/11",
+      "failed": 0,
+      "warned": 0,
+      "issues": ""
+    },
+    {
+      "tool": "inei",
+      "compliant": true,
+      "score": "9/10",
+      "failed": 0,
+      "warned": 1,
+      "issues": ""
+    },
+    {
+      "tool": "undata",
+      "compliant": true,
+      "score": "10/10",
+      "failed": 0,
+      "warned": 0,
+      "issues": ""
+    },
+    {
+      "tool": "consultdn",
+      "compliant": true,
+      "score": "9/10",
+      "failed": 0,
+      "warned": 1,
+      "issues": ""
+    },
+    {
+      "tool": "iadetector",
+      "compliant": true,
+      "score": "11/11",
+      "failed": 0,
+      "warned": 0,
+      "issues": ""
+    }
+  ]
+}

@@ -1,0 +1,223 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens.
+ *
+ * Warm monochrome with pastel spot colour. Colour is a scarce resource here:
+ * it marks meaning (which data source, which auth requirement) and nothing
+ * else. Every surface is separated by a 1px hairline rather than a shadow.
+ *
+ * Light is the default. Dark is applied by a `.dark` class on <html>, set
+ * before paint by the inline script in layout.tsx so the page never flashes.
+ */
+
+@theme {
+  --font-sans: "SF Pro Display", "Helvetica Neue", system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-instrument-serif), "Lyon Text", Georgia, serif;
+  --font-mono: var(--font-jetbrains-mono), "SF Mono", ui-monospace, monospace;
+
+  --radius-card: 12px;
+  --radius-control: 6px;
+}
+
+:root {
+  /* Canvas and surfaces */
+  --canvas: #fbfbfa;
+  --surface: #ffffff;
+  --surface-sunken: #f7f6f3;
+
+  /* Ink */
+  --ink: #111111;
+  --ink-muted: #787774;
+  --ink-faint: #9b9a97;
+
+  /* Structure */
+  --line: #eaeaea;
+  --line-strong: #dcdcda;
+
+  /* Spot pastels: background / foreground pairs */
+  --pale-red-bg: #fdebec;
+  --pale-red-fg: #9f2f2d;
+  --pale-blue-bg: #e1f3fe;
+  --pale-blue-fg: #1f6c9f;
+  --pale-green-bg: #edf3ec;
+  --pale-green-fg: #346538;
+  --pale-yellow-bg: #fbf3db;
+  --pale-yellow-fg: #956400;
+
+  /* Inverted control (primary button) */
+  --control: #111111;
+  --control-ink: #ffffff;
+  --control-hover: #333333;
+}
+
+.dark {
+  --canvas: #191918;
+  --surface: #202020;
+  --surface-sunken: #1a1a19;
+
+  --ink: #ededec;
+  --ink-muted: #9b9a97;
+  --ink-faint: #6f6e6b;
+
+  --line: #2c2c2a;
+  --line-strong: #3a3a37;
+
+  /* Pastels re-tuned for a dark canvas: the hue survives, the luminance flips. */
+  --pale-red-bg: #3a2422;
+  --pale-red-fg: #f5a29f;
+  --pale-blue-bg: #17303e;
+  --pale-blue-fg: #94ccec;
+  --pale-green-bg: #1e2c1f;
+  --pale-green-fg: #9dc7a1;
+  --pale-yellow-bg: #322913;
+  --pale-yellow-fg: #e8c479;
+
+  --control: #ededec;
+  --control-ink: #191918;
+  --control-hover: #ffffff;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-sunken: var(--surface-sunken);
+  --color-ink: var(--ink);
+  --color-muted: var(--ink-muted);
+  --color-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-control: var(--control);
+  --color-control-ink: var(--control-ink);
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    /* The toggle swaps a class; without this the change is jarring. */
+    color-scheme: light;
+    /* `clip`, not `hidden`: the fixed ambient layer in the hero extends to the
+       viewport edge and would otherwise add a stray horizontal scrollbar, but
+       `overflow: hidden` creates a scroll container and silently breaks the
+       sticky nav. `clip` suppresses the overflow without doing that. */
+    overflow-x: clip;
+  }
+
+  .dark html,
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--pale-yellow-bg);
+    color: var(--pale-yellow-fg);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+}
+
+@layer components {
+  /* Editorial heading: tight tracking, tight leading, serif. */
+  .display {
+    font-family: var(--font-serif);
+    letter-spacing: -0.03em;
+    line-height: 1.08;
+    font-weight: 400;
+  }
+
+  /* The one card treatment on the site: hairline, crisp radius, no shadow. */
+  .card {
+    background-color: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    transition: border-color 200ms ease, box-shadow 200ms ease;
+  }
+
+  .card-interactive:hover {
+    border-color: var(--line-strong);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.04);
+  }
+
+  .dark .card-interactive:hover {
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+  }
+
+  /* Uppercase micro-label used for section eyebrows and tags. */
+  .eyebrow {
+    font-size: 0.6875rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--ink-faint);
+  }
+
+  kbd {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    border: 1px solid var(--line);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    background: var(--surface-sunken);
+    padding: 0.1rem 0.35rem;
+    color: var(--ink-muted);
+  }
+}
+
+@layer utilities {
+  /* Scroll-entry. Elements start hidden and are revealed by IntersectionObserver.
+     `no-js` guards against content being invisible if the script never runs. */
+  .reveal {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 600ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition-delay: calc(var(--index, 0) * 80ms);
+  }
+
+  .reveal[data-visible="true"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  /* Hairline rules that fade at the edges, so a full-bleed divider does not
+     end in two hard stops. */
+  .rule {
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--line) 12%,
+      var(--line) 88%,
+      transparent
+    );
+  }
+}
