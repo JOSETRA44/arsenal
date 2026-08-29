@@ -11,6 +11,7 @@ const GITHUB = "https://github.com/JOSETRA44";
 const LINKS = [
   { href: "/#servers", label: "Servers" },
   { href: "/#install", label: "Install" },
+  { href: "/#verify", label: "Verify" },
   { href: "/#contract", label: "Contract" },
 ];
 

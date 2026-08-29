@@ -22,6 +22,7 @@ import shlex
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+from .mcp import handshake
 from .registry import Tool
 from .runner import EXIT_MEANINGS, Invocation, ToolUnavailable, invoke
 
@@ -93,7 +94,12 @@ class Report:
 
 
 def audit(
-    tool: Tool, *, live: bool = False, timeout: int = 120, prefer: str = "installed"
+    tool: Tool,
+    *,
+    live: bool = False,
+    timeout: int = 120,
+    prefer: str = "installed",
+    mcp: bool = False,
 ) -> Report:
     """Grade one tool against the spec.
 
@@ -119,7 +125,82 @@ def audit(
         _check_live(report, tool, manifest, timeout, prefer)
     else:
         report.add("live", "skip", "live checks not requested", hint="re-run with --live")
+
+    if mcp:
+        _check_mcp(report, tool, timeout, prefer)
+    else:
+        report.add("mcp", "skip", "MCP protocol check not requested", hint="re-run with --mcp")
     return report
+
+
+def _check_mcp(report: Report, tool: Tool, timeout: int, prefer: str) -> None:
+    """Speak the actual MCP protocol to the server half of this project.
+
+    The CLI checks above say nothing about whether an MCP client can reach it:
+    a project can have a flawless CLI and a server that dies on import, and the
+    only symptom a user gets is a bare "connection closed". This runs the real
+    handshake so that failure has a cause attached.
+    """
+    candidates = tool.mcp_candidates(prefer)
+    if not candidates:
+        report.add(
+            "mcp",
+            "fail",
+            "no MCP server entry point found",
+            hint="Install the project, or check mcp_script/mcp_source in registry.py.",
+        )
+        return
+
+    result = handshake(candidates[0], timeout=min(timeout, 90))
+    if not result.ok:
+        if result.needs_credentials:
+            # Exit 4 is the contract's "auth or configuration error". The server
+            # is fine; the environment simply has no key. Grading that as a
+            # defect would tell the user to fix code when they need to set a
+            # variable, so it is a warning the audit still passes with.
+            report.add(
+                "mcp",
+                "warn",
+                "server needs credentials before it can start: " + (result.stderr or "")[:150],
+                hint="Set the API key in the environment, then re-run with --mcp.",
+            )
+            return
+        report.add(
+            "mcp",
+            "fail",
+            "handshake failed: " + (result.error or "unknown"),
+            hint="Run the server command by hand to see what it prints on stderr.",
+        )
+        return
+
+    name = result.server_name or "unnamed"
+    report.add(
+        "mcp",
+        "pass",
+        f"{name} v{result.server_version or '?'} — {len(result.tools)} tools over MCP",
+    )
+
+    if not result.tools:
+        report.add(
+            "mcp.tools",
+            "warn",
+            "the server exposes no tools",
+            hint="A server with no tools is unusable to a client.",
+        )
+        return
+
+    # A tool an agent cannot tell apart from its sibling is a tool it will
+    # misuse, so an empty description is a real defect rather than a nicety.
+    undocumented = [t.get("name", "?") for t in result.tools if not (t.get("description") or "").strip()]
+    if undocumented:
+        report.add(
+            "mcp.tools",
+            "warn",
+            f"{len(undocumented)} tool(s) have no description: " + ", ".join(undocumented[:4]),
+            hint="Tool descriptions are how a model decides which tool to call.",
+        )
+    else:
+        report.add("mcp.tools", "pass", f"all {len(result.tools)} tools carry a description")
 
 
 def _check_help(report: Report, run: Invocation) -> None:

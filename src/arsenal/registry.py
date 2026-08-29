@@ -83,9 +83,63 @@ class Tool:
     tags: tuple[str, ...] = field(default_factory=tuple)
     """Free-form domain tags, searched by ``arsenal search``."""
 
+    mcp_script: str = ""
+    """Console script that starts the MCP *server* (not the CLI), once installed."""
+
+    mcp_source: tuple[str, ...] = ()
+    """How to start the MCP server straight from this checkout, when not installed."""
+
     @property
     def path(self) -> Path:
         return WORKSPACE / self.project_dir
+
+    def mcp_candidates(self, prefer: str = "installed") -> list[list[str]]:
+        """Argv prefixes that start the MCP server, best first.
+
+        Kept separate from ``candidates`` because most projects ship two entry
+        points — a CLI and a server — and probing the wrong one produces a
+        confusing "it works" for a server that a client cannot actually reach.
+        """
+        installed: list[list[str]] = []
+        source: list[list[str]] = []
+        if self.mcp_script:
+            on_path = shutil.which(self.mcp_script)
+            if on_path:
+                installed.append([on_path])
+        if self.path.is_dir() and self.mcp_source:
+            source.append([part.replace("{dir}", str(self.path)) for part in self.mcp_source])
+        return (source + installed) if prefer == "source" else (installed + source)
+
+    def install_command(self) -> list[str]:
+        """How to install this project so its scripts land on PATH."""
+        if self.runtime == "python":
+            return ["uv", "tool", "install", "--force", str(self.path)]
+        if self.runtime == "node":
+            return ["npm", "install", "--prefix", str(self.path)]
+        return ["dotnet", "build", str(self.path)]
+
+    def build_command(self) -> list[str] | None:
+        """A compile step, where the runtime needs one before anything runs.
+
+        Uses the project's own ``build`` script rather than invoking ``npx tsc``
+        directly: npx resolves from the *current* directory, so with a
+        ``--project`` pointing elsewhere it decides TypeScript is missing and
+        offers to install it. ``npm run --prefix`` runs inside the project,
+        where its devDependency is already present.
+        """
+        if self.runtime == "node":
+            return ["npm", "run", "build", "--prefix", str(self.path)]
+        return None
+
+    def test_command(self) -> list[str]:
+        """How to run this project's own test suite."""
+        if self.runtime == "python":
+            # `--no-sync` because a running MCP server holds an open handle on
+            # the console script, and the pre-run sync then fails on Windows.
+            return ["uv", "run", "--directory", str(self.path), "--no-sync", "pytest", "-q"]
+        if self.runtime == "node":
+            return ["npm", "test", "--prefix", str(self.path)]
+        return ["dotnet", "test", str(self.path), "-v", "q", "--nologo"]
 
     def candidates(self, prefer: str = "installed") -> list[list[str]]:
         """Candidate argv prefixes, best first.
@@ -132,6 +186,8 @@ class Tool:
 TOOLS: tuple[Tool, ...] = (
     Tool(
         name="openalex",
+        mcp_script="openalex-mcp",
+        mcp_source=('uv', 'run', '--directory', '{dir}', '--no-sync', 'openalex-mcp'),
         project_dir="openalex-mcp",
         script="openalex",
         summary="250M+ scholarly works, authors, institutions, sources (OpenAlex).",
@@ -141,6 +197,8 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         name="scopus",
+        mcp_script="scopus-mcp",
+        mcp_source=('uv', 'run', '--directory', '{dir}', '--no-sync', 'scopus-mcp'),
         project_dir="scopus-mcp",
         script="scopus",
         summary="Elsevier Scopus: papers, abstracts, author h-index, citation timelines.",
@@ -150,6 +208,8 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         name="bcrp",
+        mcp_script="bcrp-mcp",
+        mcp_source=('uv', 'run', '--directory', '{dir}', '--no-sync', 'bcrp-mcp'),
         project_dir="BCRP-mcp",
         script="bcrp",
         summary="Peru central bank time series: FX, inflation, GDP, reserves, rates.",
@@ -157,6 +217,8 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         name="inei",
+        mcp_script="inei-mcp",
+        mcp_source=('uv', 'run', '--directory', '{dir}', '--no-sync', 'inei-mcp'),
         project_dir="INEI-mcp",
         script="inei",
         summary="Peru national statistics: census, indicators, ubigeo geography.",
@@ -164,6 +226,8 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         name="undata",
+        mcp_script="undata-mcp",
+        mcp_source=('uv', 'run', '--directory', '{dir}', '--no-sync', 'undata-mcp'),
         project_dir="UNdata-mcp",
         script="undata",
         summary="UN Statistics SDMX: world development indicators, MDG, cross-country.",
@@ -171,6 +235,8 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         name="consultdn",
+        mcp_script="mcp-dni",
+        mcp_source=('node', '{dir}/dist/mcp.js'),
         project_dir="consultdn-mcp",
         script="consultdn",
         summary="Peru identity and company verification: DNI, RUC, exchange rate.",
@@ -179,6 +245,8 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         name="iadetector",
+        mcp_script="iadetector-mcp",
+        mcp_source=('dotnet', 'run', '--project', '{dir}/src/IAdetector.Mcp', '--no-build'),
         project_dir="IAdetector-mcp",
         script="iadetector",
         summary="Local AI-generated-text detection (ONNX ensemble, no external API).",

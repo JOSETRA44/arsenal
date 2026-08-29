@@ -47,7 +47,7 @@ npm run content && npm run typecheck
 ```
 app/
   layout.tsx              Fonts, metadata, no-flash theme script, nav + footer
-  page.tsx                The landing page: hero → servers → install → contract
+  page.tsx                The landing page: hero → servers → install → verify → contract
   globals.css             Design tokens. Light and dark, one place.
   servers/page.tsx        Index of all seven
   servers/[slug]/page.tsx Per-server detail; statically generated per slug
@@ -55,7 +55,7 @@ app/
 components/
   primitives.tsx          Tag, Reveal, CodeLine, CodeBlock, Section, ACCENT
   nav.tsx  theme-toggle.tsx  footer.tsx
-  hero.tsx  server-grid.tsx  install.tsx  contract.tsx
+  hero.tsx  server-grid.tsx  install.tsx  verify.tsx  contract.tsx
 content/
   servers.generated.ts    GENERATED — do not edit
 scripts/

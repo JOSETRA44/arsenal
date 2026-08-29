@@ -4,6 +4,7 @@ import { Install } from "@/components/install";
 import { Reveal } from "@/components/primitives";
 import { Section } from "@/components/ui";
 import { ServerGrid } from "@/components/server-grid";
+import { Verify } from "@/components/verify";
 import { servers, totalCommands } from "@/content/servers.generated";
 
 /**
@@ -42,6 +43,8 @@ export default function Home() {
       >
         <Install />
       </Section>
+
+      <Verify />
 
       <Contract />
 

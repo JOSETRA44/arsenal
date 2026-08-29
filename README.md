@@ -77,6 +77,45 @@ Findings are graded `pass` / `warn` / `fail`. Only `fail` breaks compliance —
 a tool with no external API genuinely has no auth or rate-limit exit path, so
 an undocumented code 4 is a `warn`, not a defect.
 
+### `arsenal install` / `arsenal test` / `arsenal verify` — the whole set at once
+
+Seven projects across three ecosystems means seven install incantations and
+seven test runners. These collapse that into one command each:
+
+```bash
+arsenal install                  # every CLI and MCP server onto PATH
+arsenal install openalex bcrp    # or just these
+arsenal test                     # every project's own suite, one table
+arsenal verify                   # install, test, then audit — exits non-zero on any failure
+arsenal verify --skip-install    # when everything is already installed
+```
+
+One project failing never stops the rest: each step is reported with its exit
+code and the most useful line of its output, so six passing and one broken reads
+as six passing and one broken.
+
+### `arsenal doctor --mcp` — does a client actually reach it?
+
+The checks above grade the **CLI**. That is the larger half of each project but
+not the half an MCP client uses, and the two diverge: a server whose CLI is
+flawless still fails to connect if its entry point dies on import, and all the
+client reports is `connection closed`.
+
+`--mcp` runs the real handshake over stdio — `initialize`, the
+`notifications/initialized` acknowledgement, then `tools/list` — and reports
+what the server said about itself:
+
+```bash
+arsenal doctor --mcp
+arsenal doctor scopus --mcp --prefer installed
+```
+
+It distinguishes two failures that need very different fixes. A server that
+exits with code 4 (the contract's auth code) is *fine* — the environment simply
+has no API key, which is one line for the user to set, so that is a warning. A
+server that crashes, hangs, or exits any other way is a defect, and the report
+carries its exit code and its own stderr instead of a bare timeout.
+
 ### `arsenal run <tool> [args...]` — passthrough
 
 ```bash

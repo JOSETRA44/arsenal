@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from . import __version__, doctor, index, render
+from . import __version__, doctor, index, lifecycle, render
 from .registry import BY_NAME, TOOLS, WORKSPACE_FOUND, WORKSPACE_HINT
 from .render import (
     EXIT_API,
@@ -74,6 +74,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--timeout", type=int, default=120, help="Per-invocation timeout in seconds.")
     p.add_argument(
+        "--mcp",
+        action="store_true",
+        help="Also speak the MCP protocol to each server (initialize + tools/list). "
+        "This is what an MCP client actually does, and the CLI checks do not cover it.",
+    )
+    p.add_argument(
         "--prefer",
         choices=("installed", "source"),
         default="source",
@@ -81,6 +87,29 @@ def build_parser() -> argparse.ArgumentParser:
         "on PATH ('installed'). An installed script is a snapshot from whenever it "
         "was last installed, so it will not reflect uncommitted work.",
     )
+    _add_global_flags(p)
+
+    p = sub.add_parser(
+        "install",
+        help="Install every server so its CLI and MCP server land on PATH.",
+    )
+    p.add_argument("tools", nargs="*", help="Tool names to install (default: all).")
+    p.add_argument("--timeout", type=int, default=900, help="Per-project timeout in seconds.")
+    _add_global_flags(p)
+
+    p = sub.add_parser("test", help="Run every server's own test suite.")
+    p.add_argument("tools", nargs="*", help="Tool names to test (default: all).")
+    p.add_argument("--timeout", type=int, default=1800, help="Per-project timeout in seconds.")
+    _add_global_flags(p)
+
+    p = sub.add_parser(
+        "verify",
+        help="Install, test, then audit everything — the one command that proves the "
+        "whole arsenal works end to end.",
+    )
+    p.add_argument("--skip-install", action="store_true", help="Assume everything is installed.")
+    p.add_argument("--live", action="store_true", help="Include the live API checks.")
+    p.add_argument("--timeout", type=int, default=1800, help="Per-project timeout in seconds.")
     _add_global_flags(p)
 
     p = sub.add_parser(
@@ -192,7 +221,10 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     rows = []
     for tool in selected:
         render.note("auditing " + tool.name + " (" + args.prefer + ")...", quiet=args.quiet)
-        report = doctor.audit(tool, live=args.live, timeout=args.timeout, prefer=args.prefer)
+        report = doctor.audit(
+            tool, live=args.live, timeout=args.timeout, prefer=args.prefer,
+            mcp=getattr(args, "mcp", False),
+        )
         reports.append(report)
         passed, graded = report.score
         rows.append(
@@ -212,7 +244,12 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         "doctor",
         rows,
         {"reports": [r.to_dict() for r in reports]},
-        meta={"live": args.live, "prefer": args.prefer, "audited": len(reports)},
+        meta={
+            "live": args.live,
+            "mcp": getattr(args, "mcp", False),
+            "prefer": args.prefer,
+            "audited": len(reports),
+        },
     )
     render.emit(payload, args.format, args.output, title="Spec conformance", quiet=args.quiet)
 
@@ -246,6 +283,122 @@ def _print_doctor_detail(reports: list[doctor.Report], *, no_color: bool) -> Non
             print("  " + render.colored(label, color, no_color=no_color) + " " + finding.check + ": " + detail)
             if finding.hint and finding.status in ("fail", "warn"):
                 print(render.colored("       -> " + finding.hint, "dim", no_color=no_color))
+
+
+def _selected(args: argparse.Namespace) -> tuple[Any, ...] | None:
+    """Resolve the tool names on the command line, or every tool."""
+    names = getattr(args, "tools", None) or []
+    if not names:
+        return TOOLS
+    unknown = [n for n in names if n not in BY_NAME]
+    if unknown:
+        render.fail(
+            args.command,
+            "usage",
+            "unknown tool(s): " + ", ".join(unknown),
+            "Known tools: " + ", ".join(BY_NAME),
+            args.format,
+            EXIT_USAGE,
+        )
+        return None
+    return tuple(BY_NAME[n] for n in names)
+
+
+def _report_steps(args: argparse.Namespace, command: str, results: list) -> int:
+    rows = [r.row() for r in results]
+    failed = [r for r in results if not r.ok]
+    payload = render.envelope(
+        command,
+        rows,
+        {"failed": [r.tool for r in failed]},
+        meta={"total": len(results), "failed": len(failed)},
+    )
+    render.emit(payload, args.format, args.output, title=command.title(), quiet=args.quiet)
+
+    if failed and not args.quiet:
+        render.note("")
+        for result in failed:
+            render.note(f"{result.tool} {result.step}: exit {result.exit_code} — {result.detail}")
+    return EXIT_API if failed else EXIT_OK
+
+
+def cmd_install(args: argparse.Namespace) -> int:
+    tools = _selected(args)
+    if tools is None:
+        return EXIT_USAGE
+    results = lifecycle.install_all(
+        tools, timeout=args.timeout,
+        on_step=None if args.quiet else lambda m: render.note(m),
+    )
+    return _report_steps(args, "install", results)
+
+
+def cmd_test(args: argparse.Namespace) -> int:
+    tools = _selected(args)
+    if tools is None:
+        return EXIT_USAGE
+    results = lifecycle.test_all(
+        tools, timeout=args.timeout,
+        on_step=None if args.quiet else lambda m: render.note(m),
+    )
+    return _report_steps(args, "test", results)
+
+
+def cmd_verify(args: argparse.Namespace) -> int:
+    """Install, test, then audit — the single command that proves the set works.
+
+    Ordered deliberately: installing first means the audit grades what a user
+    would actually get, and testing before auditing surfaces a broken build as
+    a test failure rather than as a confusing protocol error.
+    """
+    steps: list = []
+    if not args.skip_install:
+        steps += lifecycle.install_all(
+            TOOLS, timeout=args.timeout,
+            on_step=None if args.quiet else lambda m: render.note(m),
+        )
+    steps += lifecycle.test_all(
+        TOOLS, timeout=args.timeout,
+        on_step=None if args.quiet else lambda m: render.note(m),
+    )
+
+    reports = []
+    for tool in TOOLS:
+        render.note("auditing " + tool.name + "...", quiet=args.quiet)
+        reports.append(
+            doctor.audit(tool, live=args.live, timeout=300, prefer="installed", mcp=True)
+        )
+
+    rows = [r.row() for r in steps]
+    for report in reports:
+        passed, graded = report.score
+        rows.append({
+            "tool": report.tool,
+            "step": "audit",
+            "ok": report.compliant,
+            "exit_code": 0 if report.compliant else 1,
+            "seconds": 0,
+            "detail": f"{passed}/{graded} checks"
+            + ("" if report.compliant else "; " + report.failed[0].detail[:120]),
+        })
+
+    broken = [r for r in rows if not r["ok"]]
+    payload = render.envelope(
+        "verify",
+        rows,
+        {"reports": [r.to_dict() for r in reports]},
+        meta={"steps": len(rows), "failed": len(broken), "live": args.live},
+    )
+    render.emit(payload, args.format, args.output, title="Verify", quiet=args.quiet)
+
+    if not args.quiet:
+        render.note("")
+        if broken:
+            for row in broken:
+                render.note(f"FAILED  {row['tool']} {row['step']}: {row['detail']}")
+        else:
+            render.note(f"All {len(TOOLS)} servers install, test and audit clean.")
+    return EXIT_API if broken else EXIT_OK
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -293,7 +446,10 @@ def build_manifest() -> dict[str, Any]:
         "list": ["arsenal list -f json"],
         "search": ["arsenal search 'citation' -f json"],
         "index": ["arsenal index --refresh -f json"],
-        "doctor": ["arsenal doctor --live -f json -o audit.json"],
+        "doctor": ["arsenal doctor --live --mcp -f json -o audit.json"],
+        "install": ["arsenal install", "arsenal install openalex bcrp"],
+        "test": ["arsenal test", "arsenal test undata -f json"],
+        "verify": ["arsenal verify", "arsenal verify --skip-install --live"],
         "run": ["arsenal run openalex search-works 'graph neural networks' -f jsonl"],
         "describe": ["arsenal describe --json"],
     }
@@ -302,6 +458,9 @@ def build_manifest() -> dict[str, Any]:
         "search": ["tool", "command", "summary", "auth", "row_fields", "example"],
         "index": ["tool", "available", "version", "commands", "formats", "error"],
         "doctor": ["tool", "compliant", "score", "failed", "warned", "issues"],
+        "install": ["tool", "step", "ok", "exit_code", "seconds", "detail"],
+        "test": ["tool", "step", "ok", "exit_code", "seconds", "detail"],
+        "verify": ["tool", "step", "ok", "exit_code", "seconds", "detail"],
         "describe": ["command", "summary", "example"],
     }
     for action in parser._subparsers._group_actions if parser._subparsers else []:
@@ -391,6 +550,9 @@ def main(argv: list[str] | None = None) -> int:
         "search": cmd_search,
         "index": cmd_index,
         "doctor": cmd_doctor,
+        "install": cmd_install,
+        "test": cmd_test,
+        "verify": cmd_verify,
         "run": cmd_run,
         "describe": cmd_describe,
     }
