@@ -78,7 +78,7 @@ class Tool:
     """Environment variables holding credentials, if any."""
 
     runtime: str = "python"
-    """``python`` | ``node`` | ``dotnet`` — selects the source-checkout fallback."""
+    """``python`` | ``node`` | ``dotnet`` | ``go`` — selects the source-checkout fallback."""
 
     tags: tuple[str, ...] = field(default_factory=tuple)
     """Free-form domain tags, searched by ``arsenal search``."""
@@ -116,6 +116,10 @@ class Tool:
             return ["uv", "tool", "install", "--force", str(self.path)]
         if self.runtime == "node":
             return ["npm", "install", "--prefix", str(self.path)]
+        if self.runtime == "go":
+            # `go -C` runs inside the module without changing our cwd; the
+            # binaries land in GOPATH/bin, which the Go installer puts on PATH.
+            return ["go", "-C", str(self.path), "install", "./cmd/..."]
         return ["dotnet", "build", str(self.path)]
 
     def build_command(self) -> list[str] | None:
@@ -139,6 +143,8 @@ class Tool:
             return ["uv", "run", "--directory", str(self.path), "--no-sync", "pytest", "-q"]
         if self.runtime == "node":
             return ["npm", "test", "--prefix", str(self.path)]
+        if self.runtime == "go":
+            return ["go", "-C", str(self.path), "test", "./..."]
         return ["dotnet", "test", str(self.path), "-v", "q", "--nologo"]
 
     def candidates(self, prefer: str = "installed") -> list[list[str]]:
@@ -173,6 +179,10 @@ class Tool:
                 entry = self.path / rel
                 if entry.is_file():
                     found.append(["node", str(entry)])
+        elif self.runtime == "go":
+            # `go run` compiles into the build cache, so only the first call
+            # after a change pays for compilation.
+            found.append(["go", "-C", str(self.path), "run", "./cmd/" + self.script])
         elif self.runtime == "dotnet":
             for exe in self.path.glob("publish/**/" + self.script + ".exe"):
                 found.append([str(exe)])
@@ -223,6 +233,16 @@ TOOLS: tuple[Tool, ...] = (
         script="inei",
         summary="Peru national statistics: census, indicators, ubigeo geography.",
         tags=("statistics", "peru", "census", "demography", "geography"),
+    ),
+    Tool(
+        name="mef",
+        mcp_script="mef-mcp",
+        mcp_source=('go', '-C', '{dir}', 'run', './cmd/mef-mcp'),
+        project_dir="MEF-mcp",
+        script="mef",
+        summary="Peru Ministry of Economy: daily budget execution, open data, investment projects.",
+        runtime="go",
+        tags=("economics", "peru", "budget", "public-spending", "investment", "open-data"),
     ),
     Tool(
         name="undata",

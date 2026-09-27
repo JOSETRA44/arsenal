@@ -212,7 +212,7 @@ class TestCommands:
 
     @pytest.mark.parametrize(
         "name,runner",
-        [("bcrp", "uv"), ("consultdn", "npm"), ("iadetector", "dotnet")],
+        [("bcrp", "uv"), ("consultdn", "npm"), ("iadetector", "dotnet"), ("mef", "go")],
     )
     def test_install_and_test_commands_match_the_runtime(self, name, runner):
         from arsenal.registry import BY_NAME
@@ -221,8 +221,72 @@ class TestCommands:
         assert tool.install_command()[0] == runner
         assert tool.test_command()[0] in (runner, "npx")
 
+    def test_go_runtime_runs_inside_the_module_with_go_dash_c(self):
+        """`go run ./cmd/x` only resolves from inside the module, so every Go
+        route must carry `-C <project dir>` rather than relying on our cwd."""
+        from arsenal.registry import BY_NAME
+
+        tool = BY_NAME["mef"]
+        assert tool.install_command()[:3] == ["go", "-C", str(tool.path)]
+        assert tool.test_command()[-1] == "./..."
+        if not tool.path.is_dir():
+            pytest.skip("MEF-mcp checkout not present")
+        cli = tool.candidates("source")[0]
+        server = tool.mcp_candidates("source")[0]
+        assert cli == ["go", "-C", str(tool.path), "run", "./cmd/mef"]
+        assert server == ["go", "-C", str(tool.path), "run", "./cmd/mef-mcp"]
+
     def test_every_tool_declares_an_mcp_entry_point(self):
         from arsenal.registry import TOOLS
 
         missing = [t.name for t in TOOLS if not t.mcp_script and not t.mcp_source]
         assert missing == [], "no way to reach the MCP server for: " + str(missing)
+
+
+class TestInstallLockHazard:
+    """`uv tool install --force` on a running server corrupts the install.
+
+    It deletes the old Scripts directory before writing the new one, so a
+    running MCP server holding that directory makes uv abort part-way and leave
+    a launcher with no package behind it. This bit this workspace twice, and
+    the symptom — "No module named ..." — looks like a code bug, so the message
+    has to name the real cause.
+    """
+
+    def test_a_permission_denied_install_is_recognised(self):
+        result = lifecycle.StepResult(
+            "bcrp", "install", False, 2, 1.0,
+            "failed to remove directory `...Scripts`: Acceso denegado. (os error 5)",
+        )
+        assert lifecycle._install_lock_failure(result)
+
+    def test_the_english_wording_is_recognised_too(self):
+        result = lifecycle.StepResult(
+            "bcrp", "install", False, 2, 1.0, "failed to remove file: Access is denied.",
+        )
+        assert lifecycle._install_lock_failure(result)
+
+    def test_an_ordinary_failure_is_not_mistaken_for_the_lock(self):
+        result = lifecycle.StepResult("bcrp", "install", False, 1, 1.0, "ResolutionImpossible")
+        assert not lifecycle._install_lock_failure(result)
+
+    def test_a_success_is_never_a_lock_failure(self):
+        result = lifecycle.StepResult("bcrp", "install", True, 0, 1.0, "")
+        assert not lifecycle._install_lock_failure(result)
+
+    def test_the_reported_detail_names_the_cause_and_the_fix(self, monkeypatch):
+        from arsenal.registry import BY_NAME
+
+        tool = BY_NAME["bcrp"]
+        monkeypatch.setattr(
+            type(tool), "install_command",
+            lambda self: [
+                sys.executable, "-c",
+                "import sys; print('failed to remove directory: Acceso denegado. "
+                "(os error 5)', file=sys.stderr); raise SystemExit(2)",
+            ],
+        )
+        monkeypatch.setattr(type(tool), "build_command", lambda self: None)
+        detail = lifecycle.install_all([tool], timeout=60)[0].detail
+        assert "BROKEN" in detail
+        assert "bcrp-mcp" in detail

@@ -108,6 +108,23 @@ def _summarise(stdout: str) -> str:
     return ""
 
 
+def _install_lock_failure(result: StepResult) -> bool:
+    """Did this install fail because a running server held the console script?
+
+    `uv tool install --force` deletes the old Scripts directory before writing
+    the new one. If an MCP server is running from that directory, Windows
+    refuses the delete and uv aborts *after* the removal has partly happened —
+    leaving the launcher on PATH with no package behind it. The tool then fails
+    with "No module named ...", which reads like a code bug and is not one.
+    """
+    return result.exit_code != 0 and (
+        "Acceso denegado" in result.detail
+        or "os error 5" in result.detail
+        or "Access is denied" in result.detail
+        or "failed to remove" in result.detail
+    )
+
+
 def install_all(
     tools: Iterable[Tool] = TOOLS,
     *,
@@ -119,7 +136,23 @@ def install_all(
     for tool in tools:
         if on_step:
             on_step(f"installing {tool.name}...")
-        results.append(_run(tool, "install", tool.install_command(), timeout))
+        result = _run(tool, "install", tool.install_command(), timeout)
+        if _install_lock_failure(result):
+            # Say what actually happened, and warn that the tool may now be
+            # half-installed — silence here previously cost an hour of
+            # debugging a "No module named" that had nothing to do with code.
+            result = StepResult(
+                tool.name,
+                "install",
+                False,
+                result.exit_code,
+                result.seconds,
+                "a running process holds this tool's console script, so the install was "
+                "aborted mid-way and the installed copy may now be BROKEN. Stop the "
+                f"{tool.mcp_script or tool.script} MCP server (or close the client using "
+                "it) and re-run. Original error: " + result.detail[:120],
+            )
+        results.append(result)
 
         build = tool.build_command()
         if build is not None:
