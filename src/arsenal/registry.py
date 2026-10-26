@@ -240,9 +240,9 @@ TOOLS: tuple[Tool, ...] = (
         mcp_source=('go', '-C', '{dir}', 'run', './cmd/mef-mcp'),
         project_dir="MEF-mcp",
         script="mef",
-        summary="Peru Ministry of Economy: daily budget execution, open data, investment projects.",
+        summary="Peru Ministry of Economy: budget execution, investments, open data, analysis and xlsx/HTML reports.",
         runtime="go",
-        tags=("economics", "peru", "budget", "public-spending", "investment", "open-data"),
+        tags=("economics", "peru", "budget", "public-spending", "investment", "open-data", "reports", "excel"),
     ),
     Tool(
         name="undata",

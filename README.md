@@ -14,7 +14,7 @@ checkout in order to audit tools that are not installed yet.
 ## Install
 
 ```bash
-uv tool install C:/Users/USER/source/MCPs/arsenal
+uv tool install git+https://github.com/JOSETRA44/arsenal.git
 ```
 
 Or run it straight from the checkout:
